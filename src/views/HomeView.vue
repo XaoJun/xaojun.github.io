@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { PHOTO_FILE_NAMES, getPhotoUrl } from '../data/photos'
 
@@ -12,12 +12,29 @@ const profile = {
   avatar: '',
 }
 
-const coverImages = [
-  PHOTO_FILE_NAMES[5],
-  PHOTO_FILE_NAMES[2],
-  PHOTO_FILE_NAMES[1],
-  PHOTO_FILE_NAMES[0],
-].map(getPhotoUrl)
+const photoSizeClasses = [
+  'is-large',
+  'is-wide',
+  'is-tall',
+  'is-small',
+  'is-vertical',
+  'is-tall',
+  'is-large',
+  'is-vertical',
+  'is-wide',
+  'is-medium',
+  'is-tall',
+  'is-wide',
+]
+
+const photoWallRows = [0, 1].map((rowIndex) =>
+  PHOTO_FILE_NAMES.map((fileName, index) => ({
+    id: `${rowIndex}-${fileName}`,
+    url: getPhotoUrl(fileName),
+    alt: `生活照片 ${index + 1}`,
+    sizeClass: photoSizeClasses[index % photoSizeClasses.length],
+  })),
+)
 
 const socials = [
   { label: 'GitHub', href: 'https://github.com/' },
@@ -32,8 +49,6 @@ const stats = [
 ]
 
 const activeTab = ref('posts')
-const currentCoverIndex = ref(0)
-let carouselInterval = null
 
 const tabs = [
   { label: '最新文章', key: 'posts' },
@@ -66,45 +81,26 @@ const posts = [
     slug: 'vue3-blog-setup',
   },
 ]
-
-const startCarousel = () => {
-  carouselInterval = setInterval(() => {
-    currentCoverIndex.value = (currentCoverIndex.value + 1) % coverImages.length
-  }, 4500)
-}
-
-const stopCarousel = () => {
-  if (carouselInterval) {
-    clearInterval(carouselInterval)
-    carouselInterval = null
-  }
-}
-
-onMounted(() => {
-  startCarousel()
-})
-
-onUnmounted(() => {
-  stopCarousel()
-})
 </script>
 
 <template>
   <div>
     <div class="profile-cover">
-      <div 
-        v-for="(image, index) in coverImages" 
-        :key="index"
-        :class="['cover-slide', { active: index === currentCoverIndex }]"
-        :style="{ backgroundImage: `url(${image})` }"
-      ></div>
-      <div class="cover-indicators">
-        <button 
-          v-for="(_, index) in coverImages" 
-          :key="index"
-          :class="['indicator', { active: index === currentCoverIndex }]"
-          @click="currentCoverIndex = index"
-        ></button>
+      <div class="photo-wall-track">
+        <div
+          v-for="(row, rowIndex) in photoWallRows"
+          :key="rowIndex"
+          class="photo-wall-group"
+          :aria-hidden="rowIndex === 1"
+        >
+          <figure
+            v-for="photo in row"
+            :key="photo.id"
+            :class="['photo-wall-item', photo.sizeClass]"
+          >
+            <img :src="photo.url" :alt="photo.alt" loading="eager" decoding="async" />
+          </figure>
+        </div>
       </div>
     </div>
     
