@@ -1,8 +1,15 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
+import { PHOTO_FILE_NAMES, getPhotoDate, getPhotoUrl } from '../data/photos'
 
-const photos = ref([])
 const selectedPhoto = ref(null)
+
+const photos = PHOTO_FILE_NAMES.map((fileName, index) => ({
+  id: index + 1,
+  title: `照片 ${index + 1}`,
+  date: getPhotoDate(fileName),
+  url: getPhotoUrl(fileName),
+}))
 
 const openLightbox = (photo) => {
   selectedPhoto.value = photo
@@ -12,26 +19,6 @@ const closeLightbox = () => {
   selectedPhoto.value = null
 }
 
-onMounted(() => {
-  const photoModules = import.meta.glob('../../public/topian/*.{jpg,jpeg,png,gif,JPG,JPEG,PNG,GIF}', {
-    eager: true,
-    import: 'default',
-  })
-
-  const photoList = Object.keys(photoModules).map((path, index) => {
-    const fileName = path.split('/').pop()
-    const dateMatch = fileName.match(/(\d{4})(\d{2})(\d{2})/)
-    const date = dateMatch ? `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}` : '2024-07-01'
-    return {
-      id: index + 1,
-      title: `照片 ${index + 1}`,
-      date: date,
-      url: photoModules[path],
-    }
-  })
-
-  photos.value = photoList.sort((a, b) => new Date(b.date) - new Date(a.date))
-})
 </script>
 
 <template>

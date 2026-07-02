@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
+import { PHOTO_FILE_NAMES, getPhotoUrl } from '../data/photos'
 
 const profile = {
   name: '田艳军',
@@ -12,11 +13,11 @@ const profile = {
 }
 
 const coverImages = [
-  '/topian/微信图片_20260701220544_86_57.jpg',
-  '/topian/微信图片_20260701220534_83_57.jpg',
-  '/topian/微信图片_20260701220530_82_57.jpg',
-  '/topian/微信图片_20260701220552_90_57.jpg',
-]
+  PHOTO_FILE_NAMES[5],
+  PHOTO_FILE_NAMES[2],
+  PHOTO_FILE_NAMES[1],
+  PHOTO_FILE_NAMES[0],
+].map(getPhotoUrl)
 
 const socials = [
   { label: 'GitHub', href: 'https://github.com/' },
