@@ -1,4 +1,4 @@
-const PHOTO_BASE_URL = 'http://106.75.13.191:19000/yanjun/'
+const PHOTO_BASE_URL = 'https://img.junggboos.me/yanjun/'
 
 export const PHOTO_FILE_NAMES = [
   '微信图片_20260701220527_110_148.jpg',
