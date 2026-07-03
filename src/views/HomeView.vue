@@ -1,4 +1,5 @@
 <script setup>
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { PHOTO_FILE_NAMES, getPhotoThumbUrl, getPhotoUrl } from '../data/photos'
 
@@ -20,6 +21,9 @@ const profileFacts = [
 ]
 
 const photoSizeClasses = ['is-large', 'is-wide', 'is-tall', 'is-small', 'is-vertical', 'is-medium']
+const showPhotoWall = ref(false)
+let photoWallDelayTask
+let photoWallIdleTask
 
 const photoWallRows = [0, 1].map((rowIndex) =>
   PHOTO_FILE_NAMES.map((fileName, index) => ({
@@ -41,6 +45,29 @@ const fallbackToFullPhoto = (event, fullUrl) => {
 
   event.currentTarget.closest('.photo-wall-item')?.classList.add('is-photo-error')
 }
+
+onMounted(() => {
+  const renderPhotoWall = () => {
+    showPhotoWall.value = true
+  }
+
+  photoWallDelayTask = window.setTimeout(() => {
+    if ('requestIdleCallback' in window) {
+      photoWallIdleTask = window.requestIdleCallback(renderPhotoWall, { timeout: 1200 })
+      return
+    }
+
+    renderPhotoWall()
+  }, 650)
+})
+
+onBeforeUnmount(() => {
+  window.clearTimeout(photoWallDelayTask)
+
+  if (photoWallIdleTask && 'cancelIdleCallback' in window) {
+    window.cancelIdleCallback(photoWallIdleTask)
+  }
+})
 
 const socials = [
   { label: 'GitHub', icon: 'github', href: 'https://github.com/' },
@@ -125,7 +152,16 @@ const blogInfo = [
   <div class="home-page">
     <section class="home-hero">
       <div class="hero-visual" aria-label="流动照片背景">
-        <div class="photo-wall-track">
+        <div v-if="!showPhotoWall" class="photo-wall-loading" aria-live="polite">
+          <div class="photo-loading-mark" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <p>照片墙加载中</p>
+        </div>
+
+        <div v-else class="photo-wall-track">
           <div
             v-for="(row, rowIndex) in photoWallRows"
             :key="rowIndex"
