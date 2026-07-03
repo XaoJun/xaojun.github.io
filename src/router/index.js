@@ -28,6 +28,11 @@ const router = createRouter({
       name: 'resume',
       component: () => import('../views/ResumeView.vue'),
     },
+    {
+      path: '/contact/:type',
+      name: 'contact-detail',
+      component: () => import('../views/ContactDetailView.vue'),
+    },
   ],
 })
 

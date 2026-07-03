@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { marked } from 'marked'
-import matter from 'gray-matter'
+import { getPost } from '../services/api'
 
 const route = useRoute()
 const post = ref(null)
@@ -12,21 +12,10 @@ const loading = ref(true)
 const loadPost = async () => {
   try {
     const slug = route.params.slug
-    const response = await fetch(`/posts/${slug}.md`)
+    const postDetail = await getPost(slug)
     
-    if (!response.ok) {
-      throw new Error('文章不存在')
-    }
-    
-    const rawContent = await response.text()
-    const { data: frontmatter, content: body } = matter(rawContent)
-    const readTime = Math.ceil(body.split('').length / 600)
-    
-    post.value = {
-      ...frontmatter,
-      readTime: `${readTime} 分钟`,
-    }
-    content.value = marked(body)
+    post.value = postDetail
+    content.value = marked(postDetail.content || '')
   } catch (err) {
     console.error('加载文章失败:', err)
     post.value = {

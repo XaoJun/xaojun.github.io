@@ -1,32 +1,56 @@
 <script setup>
-const skills = ['Java', 'Spring Boot', 'Redis', 'MySQL', 'Vue 3', 'Docker', 'Linux']
+import { ref } from 'vue'
+import { getResume } from '../services/api'
 
-const projects = [
-  {
-    name: '个人博客系统',
-    desc: '基于 Vue 3 和 Vite 搭建，包含文章、照片、个人信息和 GitHub Pages 自动部署。',
-  },
-  {
-    name: '微服务业务系统',
-    desc: '围绕 Spring Boot、Redis、MySQL 完成接口开发、缓存设计和性能优化。',
-  },
-]
+const profile = ref({
+  name: '',
+  intro: '',
+  location: '',
+  email: '',
+  phone: '',
+})
+const identities = ref([])
+const skills = ref([])
+const projects = ref([])
+const loading = ref(true)
+
+const loadResume = async () => {
+  try {
+    const resume = await getResume()
+    profile.value = resume.profile
+    identities.value = resume.identities
+    skills.value = resume.skills
+    projects.value = resume.projects
+  } catch (error) {
+    console.error('加载简历失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+loadResume()
 </script>
 
 <template>
   <section class="resume-page">
     <div class="resume-hero">
       <p class="eyebrow">Resume</p>
-      <h1>田艳军</h1>
-      <p>后端开发工程师，关注稳定、高性能的业务系统设计与落地。</p>
+      <h1>{{ profile.name }}</h1>
+      <p>{{ identities.join(' / ') }}，关注稳定、高性能的业务系统设计与落地。</p>
     </div>
 
-    <div class="resume-grid">
+    <div v-if="loading" class="loading">
+      <div class="spinner"></div>
+      <p>加载简历中...</p>
+    </div>
+
+    <div v-else class="resume-grid">
       <article class="resume-card">
         <h2>个人信息</h2>
-        <p>所在地：Beijing, China</p>
-        <p>邮箱：tianyanjun@example.com</p>
-        <p>方向：后端开发 / 微服务 / 数据库优化</p>
+        <p>所在地：{{ profile.location }}</p>
+        <p>邮箱：{{ profile.email }}</p>
+        <p>手机号：{{ profile.phone }}</p>
+        <p>开发经验：{{ profile.devExperience }}</p>
       </article>
 
       <article class="resume-card">

@@ -1,41 +1,129 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { PHOTO_FILE_NAMES, getPhotoThumbUrl, getPhotoUrl } from '../data/photos'
+import { getHome, getLifePhotoStat, getTechnicalArticleStat } from '../services/api'
 
-const profile = {
-  name: '田艳军',
-  gender: '男',
-  title: '后端开发工程师',
-  intro: '关注 Spring Boot、微服务架构、Redis 缓存、数据库优化，也会记录生活照片和阶段性的成长复盘。',
-  location: 'Beijing, China',
-  email: 'tianyanjun@example.com',
-  qq: '123456789',
-  wechat: 'your-wechat-id',
-}
+const profile = ref({
+  name: '',
+  gender: '',
+  title: '',
+  intro: '',
+  location: '',
+  email: '',
+  qq: '',
+  wechat: '',
+  phone: '',
+  devExperience: '',
+  blogViews: 0,
+})
 
-const profileFacts = [
-  { label: '当前身份', value: profile.title },
-  { label: '内容方向', value: '后端开发 / 架构设计 / 生活记录' },
-  { label: '常用技术', value: 'Spring Boot / Redis / MySQL / Vue' },
+const profileFacts = ref([])
+
+const photoRowPatterns = [
+  { heightClass: 'is-row-large', spans: [3, 2, 1, 2] },
+  { heightClass: 'is-row-medium', spans: [2, 2, 2, 2] },
+  { heightClass: 'is-row-tall', spans: [1, 3, 2, 2] },
+  { heightClass: 'is-row-medium', spans: [4, 1, 1, 2] },
+  { heightClass: 'is-row-large', spans: [2, 3, 1, 2] },
+  { heightClass: 'is-row-medium', spans: [1, 2, 2, 3] },
 ]
-
-const photoSizeClasses = ['is-large', 'is-wide', 'is-tall', 'is-small', 'is-vertical', 'is-medium']
+const photoWallSegmentCount = 4
+const photoWallRowsPerSegment = 16
+const isHomeLoading = ref(true)
 const showPhotoWall = ref(false)
+let isHomeUnmounted = false
 let photoWallDelayTask
 let photoWallIdleTask
 
-const photoWallRows = [0, 1].map((rowIndex) =>
-  PHOTO_FILE_NAMES.map((fileName, index) => ({
-    id: `${rowIndex}-${fileName}`,
-    url: getPhotoThumbUrl(fileName),
-    fullUrl: getPhotoUrl(fileName),
-    alt: `生活照片 ${index + 1}`,
-    sizeClass: photoSizeClasses[index % photoSizeClasses.length],
-    loading: rowIndex === 0 && index < 4 ? 'eager' : 'lazy',
-    fetchPriority: rowIndex === 0 && index < 2 ? 'high' : 'low',
-  })),
+const photoWall = ref([])
+const photoWallSegments = computed(() => {
+  if (!photoWall.value.length) {
+    return []
+  }
+
+  return Array.from({ length: photoWallSegmentCount }, (_, segmentIndex) => {
+    return Array.from({ length: photoWallRowsPerSegment }, (_, rowIndex) => {
+      const pattern = photoRowPatterns[(rowIndex + segmentIndex) % photoRowPatterns.length]
+
+      return {
+        id: `${segmentIndex}-${rowIndex}`,
+        heightClass: pattern.heightClass,
+        photos: pattern.spans.map((span, itemIndex) => {
+          const photoIndex = (rowIndex * 4 + itemIndex + segmentIndex * 5) % photoWall.value.length
+          const photo = photoWall.value[photoIndex]
+
+          return {
+            id: `${segmentIndex}-${rowIndex}-${itemIndex}-${photo.id}`,
+            url: photo.thumbUrl,
+            fullUrl: photo.url,
+            alt: photo.title || `生活照片 ${photoIndex + 1}`,
+            spanClass: `is-span-${span}`,
+            loading: segmentIndex === 0 && rowIndex < 3 ? 'eager' : 'lazy',
+            fetchPriority: segmentIndex === 0 && rowIndex === 0 ? 'high' : 'low',
+          }
+        }),
+      }
+    })
+  })
+})
+
+const preloadPhotoWallImages = async () => {
+  const firstSegmentPhotos = photoWallSegments.value[0]?.flatMap((row) => row.photos) || []
+  const urls = [...new Set(firstSegmentPhotos.slice(0, 16).map((photo) => photo.url))]
+
+  await Promise.allSettled(
+    urls.map(
+      (url) =>
+        new Promise((resolve) => {
+          const image = new Image()
+          image.onload = resolve
+          image.onerror = resolve
+          image.src = url
+
+          if (image.decode) {
+            image.decode().then(resolve).catch(resolve)
+          }
+        }),
+    ),
+  )
+}
+
+const socials = ref([])
+const internalSocials = computed(() => socials.value.filter((social) => !social.external))
+const emailSocials = computed(() => socials.value.filter((social) => social.type === 'email'))
+const externalSocials = computed(() =>
+  socials.value.filter((social) => social.external && social.type !== 'email'),
 )
+const activeEmailPopup = ref('')
+const emailCopyStatus = ref('')
+const stats = ref([])
+
+const toggleEmailPopup = (type) => {
+  activeEmailPopup.value = activeEmailPopup.value === type ? '' : type
+  emailCopyStatus.value = ''
+}
+
+const copyEmail = async (email) => {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(email)
+    } else {
+      const textarea = document.createElement('textarea')
+      textarea.value = email
+      textarea.setAttribute('readonly', '')
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+    emailCopyStatus.value = '已复制'
+  } catch (error) {
+    console.error('复制邮箱失败:', error)
+    emailCopyStatus.value = '复制失败'
+  }
+}
 
 const fallbackToFullPhoto = (event, fullUrl) => {
   if (event.currentTarget.src !== fullUrl) {
@@ -46,8 +134,46 @@ const fallbackToFullPhoto = (event, fullUrl) => {
   event.currentTarget.closest('.photo-wall-item')?.classList.add('is-photo-error')
 }
 
-onMounted(() => {
-  const renderPhotoWall = () => {
+const loadHome = async () => {
+  isHomeLoading.value = true
+  showPhotoWall.value = false
+
+  try {
+    const [home, articleStat, photoStat] = await Promise.all([
+      getHome(),
+      getTechnicalArticleStat(),
+      getLifePhotoStat(),
+    ])
+
+    profile.value = home.profile
+    profileFacts.value = home.profileFacts
+    socials.value = home.socials
+    stats.value = [
+      { label: articleStat.label, value: articleStat.value },
+      { label: photoStat.label, value: photoStat.value },
+      { label: '开发经验', value: home.profile.devExperience },
+      { label: '博客浏览量', value: String(home.profile.blogViews || 0) },
+    ]
+    panelNavItems.value = home.panelNavItems
+    siteCards.value = home.siteCards
+    posts.value = home.recentPosts
+    blogInfo.value = home.blogInfo
+    photoWall.value = home.photoWall
+  } catch (error) {
+    console.error('加载首页数据失败:', error)
+  } finally {
+    isHomeLoading.value = false
+  }
+}
+
+const schedulePhotoWall = () => {
+  const renderPhotoWall = async () => {
+    await preloadPhotoWallImages()
+
+    if (isHomeUnmounted) {
+      return
+    }
+
     showPhotoWall.value = true
   }
 
@@ -59,9 +185,15 @@ onMounted(() => {
 
     renderPhotoWall()
   }, 650)
+}
+
+onMounted(async () => {
+  await loadHome()
+  schedulePhotoWall()
 })
 
 onBeforeUnmount(() => {
+  isHomeUnmounted = true
   window.clearTimeout(photoWallDelayTask)
 
   if (photoWallIdleTask && 'cancelIdleCallback' in window) {
@@ -69,89 +201,31 @@ onBeforeUnmount(() => {
   }
 })
 
-const socials = [
-  { label: 'GitHub', icon: 'github', href: 'https://github.com/' },
-  { label: 'QQ', icon: 'qq', href: `tencent://message/?uin=${profile.qq}` },
-  { label: '微信', icon: 'wechat', href: '#wechat' },
-  { label: 'Email', href: `mailto:${profile.email}` },
-]
-
-const stats = [
-  { value: '36', label: '技术文章' },
-  { value: '128', label: '生活照片' },
-  { value: '3+', label: '开发经验' },
-]
-
 const musicControls = [
   { label: '上一首', symbol: '‹‹' },
   { label: '暂停/播放', symbol: 'Ⅱ' },
   { label: '下一首', symbol: '››' },
 ]
 
-const panelNavItems = [
-  { label: '首页', to: '/' },
-  { label: '日常照片', to: '/photos' },
-  { label: '博客', to: '/blog' },
-  { label: '简历', to: '/resume' },
-]
-
-const siteCards = [
-  {
-    title: '日常照片',
-    desc: '把旅途、城市和随手拍整理成一条生活时间线。',
-    to: '/photos',
-  },
-  {
-    title: '技术博客',
-    desc: '记录后端、架构、缓存、数据库和个人项目实践。',
-    to: '/blog',
-  },
-  {
-    title: '个人简历',
-    desc: '集中展示工作经历、技术栈、项目经验和联系方式。',
-    to: '/resume',
-  },
-]
-
-const posts = [
-  {
-    title: 'Spring Boot 微服务架构实践',
-    date: '2024-06-18',
-    readTime: '12 分钟',
-    category: 'Backend',
-    summary: '探讨 Spring Boot 在微服务架构中的最佳实践，包括服务拆分、负载均衡和容错处理。',
-    slug: 'springboot-microservices',
-  },
-  {
-    title: 'Redis 缓存策略与性能优化',
-    date: '2024-06-12',
-    readTime: '10 分钟',
-    category: 'Database',
-    summary: '深入分析 Redis 缓存的设计模式，包括缓存击穿、雪崩和穿透问题的解决方案。',
-    slug: 'redis-cache-optimization',
-  },
-  {
-    title: 'Vue3 个人博客从 0 到 1 的搭建笔记',
-    date: '2024-05-30',
-    readTime: '8 分钟',
-    category: 'Vue',
-    summary: '记录路由、组件拆分、文章数据组织、响应式布局和部署流程中的关键取舍。',
-    slug: 'vue3-blog-setup',
-  },
-]
-
-const blogInfo = [
-  '后端工程实践',
-  '系统架构设计',
-  '数据库与缓存优化',
-  '个人成长记录',
-]
+const panelNavItems = ref([])
+const siteCards = ref([])
+const posts = ref([])
+const blogInfo = ref([])
 </script>
 
 <template>
   <div class="home-page">
-    <section class="home-hero">
-      <div class="hero-visual" aria-label="流动照片背景">
+    <section v-if="isHomeLoading" class="home-entry-loading" aria-live="polite">
+      <div class="home-entry-loader" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <p>首页加载中</p>
+    </section>
+
+    <template v-else>
+      <div class="hero-visual home-page-visual" aria-label="流动照片背景">
         <div v-if="!showPhotoWall" class="photo-wall-loading" aria-live="polite">
           <div class="photo-loading-mark" aria-hidden="true">
             <span></span>
@@ -163,31 +237,40 @@ const blogInfo = [
 
         <div v-else class="photo-wall-track">
           <div
-            v-for="(row, rowIndex) in photoWallRows"
-            :key="rowIndex"
-            class="photo-wall-group"
-            :aria-hidden="rowIndex === 1"
+            v-for="(segment, segmentIndex) in photoWallSegments"
+            :key="segmentIndex"
+            class="photo-wall-segment"
+            :aria-hidden="segmentIndex > 0"
           >
-            <figure
-              v-for="photo in row"
-              :key="photo.id"
-              :class="['photo-wall-item', photo.sizeClass]"
+            <div
+              v-for="row in segment"
+              :key="row.id"
+              :class="['photo-wall-row', row.heightClass]"
             >
-              <img
-                :src="photo.url"
-                :alt="photo.alt"
-                :loading="photo.loading"
-                :fetchpriority="photo.fetchPriority"
-                decoding="async"
-                width="480"
-                height="320"
-                @error="fallbackToFullPhoto($event, photo.fullUrl)"
-              />
-            </figure>
+              <figure
+                v-for="photo in row.photos"
+                :key="photo.id"
+                :class="['photo-wall-item', photo.spanClass]"
+                :style="{ '--photo-bg': `url(${photo.url})` }"
+              >
+                <img
+                  :src="photo.url"
+                  :alt="photo.alt"
+                  :loading="photo.loading"
+                  :fetchpriority="photo.fetchPriority"
+                  decoding="async"
+                  width="480"
+                  height="320"
+                  @error="fallbackToFullPhoto($event, photo.fullUrl)"
+                />
+              </figure>
+            </div>
           </div>
         </div>
       </div>
 
+      <div class="home-content">
+    <section class="home-hero">
       <aside class="hero-profile-panel">
         <div class="hero-panel-side">
           <div class="music-widget">
@@ -228,13 +311,12 @@ const blogInfo = [
           </nav>
 
           <div class="profile-socials" aria-label="社交链接">
-            <a
-              v-for="social in socials"
+            <RouterLink
+              v-for="social in internalSocials"
               :key="social.label"
-              :href="social.href"
-              :title="social.label"
-              target="_blank"
-              rel="noreferrer"
+              :to="social.detailPath"
+              :title="social.displayValue"
+              class="profile-social-link"
             >
               <svg v-if="social.icon === 'github'" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 2C6.48 2 2 6.59 2 12.25c0 4.53 2.86 8.37 6.84 9.73.5.09.68-.22.68-.49v-1.91c-2.78.62-3.37-1.22-3.37-1.22-.45-1.19-1.11-1.51-1.11-1.51-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.9 1.56 2.35 1.11 2.92.85.09-.67.35-1.11.63-1.37-2.22-.26-4.55-1.14-4.55-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.3 9.3 0 0 1 12 6.96c.85 0 1.7.12 2.5.34 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.95.68 1.92v2.81c0 .27.18.59.69.49A10.15 10.15 0 0 0 22 12.25C22 6.59 17.52 2 12 2Z" />
@@ -246,7 +328,58 @@ const blogInfo = [
                 <path d="M9.2 4.2c-4 0-7.2 2.55-7.2 5.7 0 1.82 1.08 3.44 2.76 4.48l-.58 1.86 2.26-1.09c.86.29 1.79.45 2.76.45.18 0 .36 0 .54-.02a5.66 5.66 0 0 1-.28-1.75c0-3.06 2.94-5.54 6.56-5.54.1 0 .2 0 .3.01-.82-2.39-3.65-4.1-7.12-4.1Zm-2.36 4.9a.86.86 0 1 1 0-1.72.86.86 0 0 1 0 1.72Zm4.7 0a.86.86 0 1 1 0-1.72.86.86 0 0 1 0 1.72Zm4.48.7c-3.02 0-5.48 1.95-5.48 4.36s2.46 4.36 5.48 4.36c.75 0 1.46-.12 2.11-.34l1.72.84-.44-1.43C20.7 16.8 21.5 15.56 21.5 14.16c0-2.41-2.46-4.36-5.48-4.36Zm-1.78 3.32a.67.67 0 1 1 0-1.34.67.67 0 0 1 0 1.34Zm3.57 0a.67.67 0 1 1 0-1.34.67.67 0 0 1 0 1.34Z" />
               </svg>
               <span v-else>@</span>
+              <small>{{ social.displayValue }}</small>
+            </RouterLink>
+
+            <a
+              v-for="social in externalSocials"
+              :key="social.label"
+              :href="social.href"
+              :title="social.displayValue"
+              class="profile-social-link"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <svg v-if="social.icon === 'github'" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2C6.48 2 2 6.59 2 12.25c0 4.53 2.86 8.37 6.84 9.73.5.09.68-.22.68-.49v-1.91c-2.78.62-3.37-1.22-3.37-1.22-.45-1.19-1.11-1.51-1.11-1.51-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.9 1.56 2.35 1.11 2.92.85.09-.67.35-1.11.63-1.37-2.22-.26-4.55-1.14-4.55-5.06 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.28 2.75 1.05A9.3 9.3 0 0 1 12 6.96c.85 0 1.7.12 2.5.34 1.9-1.33 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.93-2.34 4.8-4.57 5.05.36.32.68.95.68 1.92v2.81c0 .27.18.59.69.49A10.15 10.15 0 0 0 22 12.25C22 6.59 17.52 2 12 2Z" />
+              </svg>
+              <span v-else>@</span>
+              <small>{{ social.displayValue }}</small>
             </a>
+
+            <div
+              v-for="social in emailSocials"
+              :key="social.label"
+              role="button"
+              tabindex="0"
+              :aria-label="`显示邮箱：${social.displayValue}`"
+              :aria-expanded="activeEmailPopup === social.type"
+              class="profile-social-link profile-social-email"
+              @click="toggleEmailPopup(social.type)"
+              @keydown.enter.prevent="toggleEmailPopup(social.type)"
+              @keydown.space.prevent="toggleEmailPopup(social.type)"
+            >
+              <span>@</span>
+              <small>{{ social.displayValue }}</small>
+              <div
+                v-if="activeEmailPopup === social.type"
+                class="email-click-popover is-visible"
+                role="dialog"
+                aria-label="邮箱联系方式"
+                @click.stop
+              >
+                <span class="email-popover-title">邮箱联系</span>
+                <span class="email-address-box">{{ social.displayValue }}</span>
+                <span class="email-popover-hint">用于项目合作、技术交流和其它联系。</span>
+                <button
+                  type="button"
+                  class="email-copy-button"
+                  @click.stop="copyEmail(social.displayValue)"
+                >
+                  <span>{{ emailCopyStatus || '复制邮箱' }}</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -271,6 +404,7 @@ const blogInfo = [
           <span>个人介绍</span>
           <p>{{ profile.intro }}</p>
           <small>邮箱：{{ profile.email }}</small>
+          <small>手机号：{{ profile.phone }}</small>
         </div>
       </aside>
     </section>
@@ -307,5 +441,7 @@ const blogInfo = [
         <footer>{{ post.date }} · {{ post.readTime }}</footer>
       </article>
     </section>
+      </div>
+    </template>
   </div>
 </template>

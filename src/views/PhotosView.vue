@@ -1,16 +1,20 @@
 <script setup>
 import { ref } from 'vue'
-import { PHOTO_FILE_NAMES, getPhotoDate, getPhotoThumbUrl, getPhotoUrl } from '../data/photos'
+import { getPhotos } from '../services/api'
 
 const selectedPhoto = ref(null)
+const photos = ref([])
+const loading = ref(true)
 
-const photos = PHOTO_FILE_NAMES.map((fileName, index) => ({
-  id: index + 1,
-  title: `照片 ${index + 1}`,
-  date: getPhotoDate(fileName),
-  url: getPhotoUrl(fileName),
-  thumbUrl: getPhotoThumbUrl(fileName),
-}))
+const loadPhotos = async () => {
+  try {
+    photos.value = await getPhotos()
+  } catch (error) {
+    console.error('加载照片失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
 
 const openLightbox = (photo) => {
   selectedPhoto.value = photo
@@ -29,6 +33,7 @@ const fallbackToFullPhoto = (event, fullUrl) => {
   event.currentTarget.closest('.photo-item')?.classList.add('is-photo-error')
 }
 
+loadPhotos()
 </script>
 
 <template>
@@ -39,7 +44,12 @@ const fallbackToFullPhoto = (event, fullUrl) => {
       <p>记录生活中的美好瞬间，分享一些随手拍的照片。</p>
     </section>
 
-    <section class="photos-grid">
+    <div v-if="loading" class="loading">
+      <div class="spinner"></div>
+      <p>加载照片中...</p>
+    </div>
+
+    <section v-else class="photos-grid">
       <div
         v-for="photo in photos"
         :key="photo.id"

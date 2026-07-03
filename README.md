@@ -11,10 +11,21 @@
 
 ## 开发
 
+先启动后端服务：
+
+```bash
+cd D:\blogspringboot
+mvn spring-boot:run
+```
+
+再启动前端：
+
 ```bash
 npm install
 npm run dev
 ```
+
+开发环境下，Vite 会把 `/api` 请求代理到 `http://localhost:8080`。
 
 ## 构建
 
@@ -22,4 +33,11 @@ npm run dev
 npm run build
 ```
 
-主要内容数据集中在 `src/App.vue` 顶部的数组和对象中，替换即可改成你自己的博客信息。
+生产环境如果前后端不在同一个域名下，可以在构建前设置后端地址：
+
+```bash
+set VITE_API_BASE_URL=https://your-api-domain.com
+npm run build
+```
+
+页面数据现在来自后端接口，包括首页、博客列表、博客详情、照片和简历。
