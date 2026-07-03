@@ -1,6 +1,6 @@
 <script setup>
 import { RouterLink } from 'vue-router'
-import { PHOTO_FILE_NAMES, getPhotoUrl } from '../data/photos'
+import { PHOTO_FILE_NAMES, getPhotoThumbUrl, getPhotoUrl } from '../data/photos'
 
 const profile = {
   name: '田艳军',
@@ -24,11 +24,23 @@ const photoSizeClasses = ['is-large', 'is-wide', 'is-tall', 'is-small', 'is-vert
 const photoWallRows = [0, 1].map((rowIndex) =>
   PHOTO_FILE_NAMES.map((fileName, index) => ({
     id: `${rowIndex}-${fileName}`,
-    url: getPhotoUrl(fileName),
+    url: getPhotoThumbUrl(fileName),
+    fullUrl: getPhotoUrl(fileName),
     alt: `生活照片 ${index + 1}`,
     sizeClass: photoSizeClasses[index % photoSizeClasses.length],
+    loading: rowIndex === 0 && index < 4 ? 'eager' : 'lazy',
+    fetchPriority: rowIndex === 0 && index < 2 ? 'high' : 'low',
   })),
 )
+
+const fallbackToFullPhoto = (event, fullUrl) => {
+  if (event.currentTarget.src !== fullUrl) {
+    event.currentTarget.src = fullUrl
+    return
+  }
+
+  event.currentTarget.closest('.photo-wall-item')?.classList.add('is-photo-error')
+}
 
 const socials = [
   { label: 'GitHub', icon: 'github', href: 'https://github.com/' },
@@ -125,7 +137,16 @@ const blogInfo = [
               :key="photo.id"
               :class="['photo-wall-item', photo.sizeClass]"
             >
-              <img :src="photo.url" :alt="photo.alt" loading="eager" decoding="async" />
+              <img
+                :src="photo.url"
+                :alt="photo.alt"
+                :loading="photo.loading"
+                :fetchpriority="photo.fetchPriority"
+                decoding="async"
+                width="480"
+                height="320"
+                @error="fallbackToFullPhoto($event, photo.fullUrl)"
+              />
             </figure>
           </div>
         </div>

@@ -1,4 +1,5 @@
 const PHOTO_BASE_URL = 'https://img.junggboos.me/yanjun/'
+const PHOTO_THUMB_BASE_URL = PHOTO_BASE_URL
 
 export const PHOTO_FILE_NAMES = [
   '微信图片_20260701220527_110_148.jpg',
@@ -16,6 +17,7 @@ export const PHOTO_FILE_NAMES = [
 ]
 
 export const getPhotoUrl = (fileName) => `${PHOTO_BASE_URL}${encodeURIComponent(fileName)}`
+export const getPhotoThumbUrl = (fileName) => `${PHOTO_THUMB_BASE_URL}${encodeURIComponent(fileName)}`
 
 export const getPhotoDate = (fileName) => {
   const dateMatch = fileName.match(/(\d{4})(\d{2})(\d{2})/)

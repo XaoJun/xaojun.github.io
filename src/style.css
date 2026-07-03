@@ -623,7 +623,10 @@ code {
   min-height: 200%;
   padding: 18px;
   animation: photoWallScroll 38s linear infinite;
+  transform: translate3d(0, 0, 0);
   will-change: transform;
+  backface-visibility: hidden;
+  contain: layout paint;
 }
 
 .photo-wall-group {
@@ -634,12 +637,14 @@ code {
 }
 
 .photo-wall-item {
+  position: relative;
   min-height: 0;
   margin: 0;
   overflow: hidden;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.14);
-  box-shadow: 0 14px 30px rgba(28, 35, 30, 0.22);
+  box-shadow: 0 8px 18px rgba(28, 35, 30, 0.16);
+  contain: paint;
 }
 
 .photo-wall-item img {
@@ -647,7 +652,29 @@ code {
   height: 100%;
   display: block;
   object-fit: cover;
-  transition: transform 0.6s ease;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  transition: transform 0.35s ease;
+}
+
+.photo-wall-item.is-photo-error::after,
+.photo-item.is-photo-error::after {
+  content: "图片加载失败";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  color: rgba(255, 255, 255, 0.78);
+  background: linear-gradient(135deg, rgba(48, 75, 57, 0.92), rgba(91, 154, 111, 0.82));
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.photo-wall-item.is-photo-error img,
+.photo-item.is-photo-error img {
+  opacity: 0;
 }
 
 .photo-wall-item:hover img {
@@ -682,11 +709,21 @@ code {
 
 @keyframes photoWallScroll {
   from {
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 
   to {
-    transform: translateY(calc(-50% - 6px));
+    transform: translate3d(0, calc(-50% - 6px), 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-wall-track {
+    animation: none;
+  }
+
+  .photo-wall-item img {
+    transition: none;
   }
 }
 
@@ -1078,12 +1115,17 @@ code {
   border-radius: var(--radius);
   cursor: pointer;
   aspect-ratio: 4/3;
+  content-visibility: auto;
+  contain-intrinsic-size: 250px 188px;
+  contain: layout paint;
 }
 
 .photo-item img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
   transition: transform 0.2s ease;
 }
 

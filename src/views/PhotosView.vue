@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { PHOTO_FILE_NAMES, getPhotoDate, getPhotoUrl } from '../data/photos'
+import { PHOTO_FILE_NAMES, getPhotoDate, getPhotoThumbUrl, getPhotoUrl } from '../data/photos'
 
 const selectedPhoto = ref(null)
 
@@ -9,6 +9,7 @@ const photos = PHOTO_FILE_NAMES.map((fileName, index) => ({
   title: `照片 ${index + 1}`,
   date: getPhotoDate(fileName),
   url: getPhotoUrl(fileName),
+  thumbUrl: getPhotoThumbUrl(fileName),
 }))
 
 const openLightbox = (photo) => {
@@ -17,6 +18,15 @@ const openLightbox = (photo) => {
 
 const closeLightbox = () => {
   selectedPhoto.value = null
+}
+
+const fallbackToFullPhoto = (event, fullUrl) => {
+  if (event.currentTarget.src !== fullUrl) {
+    event.currentTarget.src = fullUrl
+    return
+  }
+
+  event.currentTarget.closest('.photo-item')?.classList.add('is-photo-error')
 }
 
 </script>
@@ -36,7 +46,16 @@ const closeLightbox = () => {
         class="photo-item"
         @click="openLightbox(photo)"
       >
-        <img :src="photo.url" :alt="photo.title" loading="lazy" />
+        <img
+          :src="photo.thumbUrl"
+          :alt="photo.title"
+          loading="lazy"
+          decoding="async"
+          fetchpriority="low"
+          width="480"
+          height="360"
+          @error="fallbackToFullPhoto($event, photo.url)"
+        />
         <div class="photo-info">
           <span class="photo-title">{{ photo.title }}</span>
           <span class="photo-date">{{ photo.date }}</span>
@@ -48,7 +67,7 @@ const closeLightbox = () => {
       <div v-if="selectedPhoto" class="lightbox-overlay" @click="closeLightbox">
         <div class="lightbox-content" @click.stop>
           <button class="lightbox-close" @click="closeLightbox">×</button>
-          <img :src="selectedPhoto.url" :alt="selectedPhoto.title" />
+          <img :src="selectedPhoto.url" :alt="selectedPhoto.title" decoding="async" />
           <div class="lightbox-info">
             <h3>{{ selectedPhoto.title }}</h3>
             <p>{{ selectedPhoto.date }}</p>
