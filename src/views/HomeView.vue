@@ -121,6 +121,8 @@ const formatTime = (seconds) => {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
+const MUSIC_VOLUME = 0.1
+
 const togglePlay = () => {
   if (!audioElement.value) {
     console.error('音频元素未初始化')
@@ -139,6 +141,7 @@ const togglePlay = () => {
       audioElement.value.src = currentTrack.value.url
       audioElement.value.load()
     }
+    audioElement.value.volume = MUSIC_VOLUME
     audioElement.value.play().catch((error) => {
       console.error('播放失败:', error)
     })
@@ -173,6 +176,7 @@ const playCurrentTrack = () => {
   }
 
   audioElement.value.src = currentTrack.value.url
+  audioElement.value.volume = MUSIC_VOLUME
   audioElement.value.load()
   audioElement.value.play().catch((error) => {
     console.error('播放失败:', error)
@@ -187,6 +191,7 @@ const handleTimeUpdate = () => {
 
 const handleLoadedMetadata = () => {
   if (audioElement.value) {
+    audioElement.value.volume = MUSIC_VOLUME
     duration.value = audioElement.value.duration || currentTrack.value?.duration || 0
   }
 }
@@ -198,6 +203,9 @@ const handleAudioError = (event) => {
 
 const handlePlay = () => {
   isPlaying.value = true
+  if (audioElement.value) {
+    audioElement.value.volume = MUSIC_VOLUME
+  }
 }
 
 const handlePause = () => {
