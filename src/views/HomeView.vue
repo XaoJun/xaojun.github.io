@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { getHome, getLifePhotoStat, getTechnicalArticleStat } from '../services/api'
+import { getHome, getLifePhotoStat, getTechnicalArticleStat, getMusicTracks } from '../services/api'
 
 const profile = ref({
   name: '',
@@ -98,6 +98,121 @@ const activeEmailPopup = ref('')
 const emailCopyStatus = ref('')
 const stats = ref([])
 
+const musicTracks = ref([])
+const currentTrackIndex = ref(0)
+const isPlaying = ref(false)
+const currentTime = ref(0)
+const duration = ref(0)
+const audioElement = ref(null)
+
+const currentTrack = computed(() => {
+  if (!musicTracks.value.length) {
+    return null
+  }
+  return musicTracks.value[currentTrackIndex.value]
+})
+
+const formatTime = (seconds) => {
+  if (!seconds || isNaN(seconds)) {
+    return '00:00'
+  }
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
+
+const togglePlay = () => {
+  if (!audioElement.value) {
+    console.error('音频元素未初始化')
+    return
+  }
+
+  if (!currentTrack.value) {
+    console.error('没有可播放的音乐')
+    return
+  }
+
+  if (isPlaying.value) {
+    audioElement.value.pause()
+  } else {
+    audioElement.value.play().catch((error) => {
+      console.error('播放失败:', error)
+    })
+  }
+}
+
+const playNext = () => {
+  if (musicTracks.value.length === 0) {
+    return
+  }
+  currentTrackIndex.value = (currentTrackIndex.value + 1) % musicTracks.value.length
+  playCurrentTrack()
+}
+
+const playPrev = () => {
+  if (musicTracks.value.length === 0) {
+    return
+  }
+  currentTrackIndex.value = (currentTrackIndex.value - 1 + musicTracks.value.length) % musicTracks.value.length
+  playCurrentTrack()
+}
+
+const playCurrentTrack = () => {
+  if (!audioElement.value) {
+    console.error('音频元素未初始化')
+    return
+  }
+
+  if (!currentTrack.value) {
+    console.error('没有可播放的音乐')
+    return
+  }
+
+  audioElement.value.src = currentTrack.value.url
+  audioElement.value.load()
+  audioElement.value.play().catch((error) => {
+    console.error('播放失败:', error)
+  })
+}
+
+const handleTimeUpdate = () => {
+  if (audioElement.value) {
+    currentTime.value = audioElement.value.currentTime
+  }
+}
+
+const handleLoadedMetadata = () => {
+  if (audioElement.value) {
+    duration.value = audioElement.value.duration || currentTrack.value?.duration || 0
+  }
+}
+
+const handleAudioError = (event) => {
+  console.error('音频加载错误:', event)
+  console.error('错误信息:', audioElement.value?.error?.message)
+}
+
+const handlePlay = () => {
+  isPlaying.value = true
+}
+
+const handlePause = () => {
+  isPlaying.value = false
+}
+
+const handleEnded = () => {
+  playNext()
+}
+
+const loadMusic = async () => {
+  try {
+    const tracks = await getMusicTracks()
+    musicTracks.value = tracks
+  } catch (error) {
+    console.error('加载音乐列表失败:', error)
+  }
+}
+
 const toggleEmailPopup = (type) => {
   activeEmailPopup.value = activeEmailPopup.value === type ? '' : type
   emailCopyStatus.value = ''
@@ -159,6 +274,8 @@ const loadHome = async () => {
     posts.value = home.recentPosts
     blogInfo.value = home.blogInfo
     photoWall.value = home.photoWall
+
+    await loadMusic()
   } catch (error) {
     console.error('加载首页数据失败:', error)
   } finally {
@@ -200,12 +317,6 @@ onBeforeUnmount(() => {
     window.cancelIdleCallback(photoWallIdleTask)
   }
 })
-
-const musicControls = [
-  { label: '上一首', symbol: '‹‹' },
-  { label: '暂停/播放', symbol: 'Ⅱ' },
-  { label: '下一首', symbol: '››' },
-]
 
 const panelNavItems = ref([])
 const siteCards = ref([])
@@ -274,22 +385,27 @@ const blogInfo = ref([])
       <aside class="hero-profile-panel">
         <div class="hero-panel-side">
           <div class="music-widget">
-            <button class="music-play-button" type="button" aria-label="播放音乐">
-              <span>♪</span>
+            <button class="music-play-button" type="button" aria-label="播放音乐" @click="togglePlay">
+              <span>{{ isPlaying ? '⏸' : '♪' }}</span>
             </button>
             <div class="music-copy">
               <strong>正在播放</strong>
-              <span>生活与代码的背景音乐</span>
+              <span>{{ currentTrack ? currentTrack.title : '生活与代码的背景音乐' }}</span>
             </div>
             <div class="music-controls" aria-label="音乐切换按钮">
-              <button
-                v-for="control in musicControls"
-                :key="control.label"
-                type="button"
-                :aria-label="control.label"
-              >
-                {{ control.symbol }}
+              <button type="button" aria-label="上一首" @click="playPrev">
+                ⏮
               </button>
+              <button type="button" aria-label="下一首" @click="playNext">
+                ⏭
+              </button>
+            </div>
+            <div v-if="currentTrack" class="music-progress">
+              <span class="music-time">{{ formatTime(currentTime) }}</span>
+              <div class="music-progress-bar">
+                <div class="music-progress-fill" :style="{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }"></div>
+              </div>
+              <span class="music-time">{{ formatTime(duration) }}</span>
             </div>
           </div>
 
@@ -442,6 +558,16 @@ const blogInfo = ref([])
       </article>
     </section>
       </div>
+
+      <audio
+        ref="audioElement"
+        @timeupdate="handleTimeUpdate"
+        @loadedmetadata="handleLoadedMetadata"
+        @play="handlePlay"
+        @pause="handlePause"
+        @ended="handleEnded"
+        @error="handleAudioError"
+      />
     </template>
   </div>
 </template>
