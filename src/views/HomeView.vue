@@ -15,6 +15,7 @@ const {
   togglePlay,
   play,
   unmute,
+  resetPlayback,
   playNext,
   playPrev,
   loadMusic,
@@ -52,9 +53,14 @@ let isHomeUnmounted = false
 let photoWallDelayTask
 let photoWallIdleTask
 
+const isPrefaceShown = () => {
+  if (typeof sessionStorage === 'undefined') return false
+  return sessionStorage.getItem('blog-preface-shown') === '1'
+}
+
 const photoWall = ref([])
 const showContent = ref(false)
-const showPreface = ref(true)
+const showPreface = ref(!isPrefaceShown())
 
 // 序言阶段隐藏顶部导航栏
 watch(
@@ -73,11 +79,13 @@ watch(currentTrack, (track) => {
   }
 }, { immediate: true })
 
-// 序言页面点击"进入博客"：此时产生用户交互，解除静音并有声播放
+// 序言页面点击"进入博客"：此时产生用户交互，解除静音并从开头有声播放
 const enterWelcome = () => {
+  sessionStorage.setItem('blog-preface-shown', '1')
   showPreface.value = false
+  resetPlayback()
   unmute()
-  if (!isPlaying.value && currentTrack.value) {
+  if (currentTrack.value && !isPlaying.value) {
     play()
   }
 }
@@ -277,12 +285,15 @@ const blogInfo = ref([])
           <div class="preface-content">
             <p class="preface-label">序言</p>
             <h1 class="preface-title">代码是写给机器的诗<br />博客是写给自己的信</h1>
-            <p class="preface-text">
-              在这里，我记录后端架构的思考、前端实践的细节，以及生活里那些值得驻足的瞬间。
-            </p>
-            <p class="preface-text">
-              技术不是冰冷的逻辑，而是解决问题的温度；生活不是机械的重复，而是值得收藏的故事。愿这些文字，能与同样热爱技术的你相遇。
-            </p>
+            <div class="preface-slips">
+               <p class="preface-text">
+                技术不是冰冷的逻辑，而是解决问题的温度；生活不是机械的重复，而是值得收藏的故事。愿这些文字，能与同样热爱技术的你相遇。
+              </p>
+              <p class="preface-text">
+                在这里，我记录后端架构的思考、前端实践的细节，以及生活里那些值得驻足的瞬间。
+              </p>
+             
+            </div>
             <button class="preface-enter-button" type="button" @click="enterWelcome">
               进入博客
             </button>
@@ -341,7 +352,7 @@ const blogInfo = ref([])
 
         <div v-if="showPhotoWall && !showContent" class="welcome-overlay">
           <div class="welcome-content">
-            <h1 class="welcome-title">欢迎来到我的博客</h1>
+            <h1 class="welcome-title">欢迎来到我的世界</h1>
             <p class="welcome-subtitle">这里记录着我的技术实践与生活片段</p>
             <p class="welcome-hint">点击任意位置进入</p>
           </div>

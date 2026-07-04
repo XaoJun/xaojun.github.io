@@ -127,6 +127,11 @@ const unmute = () => {
   isMuted.value = false
 }
 
+const resetPlayback = () => {
+  if (!audio) return
+  audio.currentTime = 0
+}
+
 const playNext = () => {
   if (tracks.value.length === 0) {
     return
@@ -168,6 +173,7 @@ export function useMusicPlayer() {
     togglePlay,
     play,
     unmute,
+    resetPlayback,
     playNext,
     playPrev,
     loadMusic,

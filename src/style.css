@@ -997,9 +997,9 @@ body.is-preface .site-header {
 
 /* 序言页面 - 首次访问时全屏覆盖，用户点击"进入博客"后消失（此点击触发音乐有声播放） */
 .preface-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 5;
+  z-index: 200;
   display: grid;
   place-items: center;
   padding: 40px 24px;
@@ -1013,10 +1013,18 @@ body.is-preface .site-header {
 
 .preface-content {
   display: grid;
-  gap: 22px;
+  gap: 26px;
   justify-items: center;
-  max-width: 620px;
+  max-width: 680px;
   animation: prefaceContentRise 0.9s ease 0.15s both;
+}
+
+.preface-slips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
 }
 
 .preface-label {
@@ -1045,13 +1053,48 @@ body.is-preface .site-header {
 }
 
 .preface-text {
+  position: relative;
   margin: 0;
-  max-width: 520px;
-  color: rgba(255, 255, 255, 0.78);
-  font-size: clamp(14px, 1.5vw, 16px);
+  width: 220px;
+  min-width: 180px;
+  flex: 0 1 auto;
+  padding: 32px 20px 28px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: clamp(13px, 1.3vw, 15px);
   font-weight: 400;
-  line-height: 1.85;
-  letter-spacing: 0.02em;
+  line-height: 1.9;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-indent: 2em;
+  background: rgba(255, 255, 255, 0.06);
+  border-left: 2px solid rgba(200, 180, 140, 0.25);
+  border-right: 2px solid rgba(200, 180, 140, 0.25);
+  border-radius: 2px;
+  /* 上下竹简封边线 */
+  box-shadow:
+    inset 0 1px 0 rgba(200, 180, 140, 0.15),
+    inset 0 -1px 0 rgba(200, 180, 140, 0.15);
+}
+
+/* 竹简上下绑绳装饰 */
+.preface-text::before,
+.preface-text::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(200, 180, 140, 0.3);
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+.preface-text::before {
+  top: -8px;
+}
+
+.preface-text::after {
+  bottom: -8px;
 }
 
 .preface-enter-button {
@@ -2517,7 +2560,11 @@ body.is-preface .site-header {
   }
 
   .preface-content {
-    gap: 16px;
+    gap: 20px;
+  }
+
+  .preface-slips {
+    gap: 14px;
   }
 
   .preface-label {
@@ -2528,7 +2575,12 @@ body.is-preface .site-header {
   }
 
   .preface-text {
-    line-height: 1.75;
+    width: 100%;
+    min-width: 0;
+    max-width: 320px;
+    padding: 26px 16px 22px;
+    font-size: 13px;
+    line-height: 1.8;
   }
 
   .preface-enter-button {
