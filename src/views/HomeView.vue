@@ -285,7 +285,15 @@ const blogInfo = ref([])
         <div class="hero-panel-side">
           <div class="music-widget">
             <button class="music-play-button" type="button" aria-label="播放音乐" @click="togglePlay">
-              <span>{{ isPlaying ? '⏸' : '♪' }}</span>
+              <span class="music-cover" :class="{ 'is-spinning': isPlaying }" aria-hidden="true">
+                <img
+                  v-if="currentTrack?.coverUrl"
+                  :src="currentTrack.coverUrl"
+                  :alt="currentTrack?.title || ''"
+                  @error="($event) => $event.target.style.display = 'none'"
+                />
+                <span v-else class="music-note">♪</span>
+              </span>
             </button>
             <div class="music-copy">
               <strong>正在播放</strong>

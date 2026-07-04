@@ -119,13 +119,14 @@ watch(theme, applyTheme)
           :title="currentTrack ? `${currentTrack.title} - ${currentTrack.artist}` : '音乐播放器'"
           @click="togglePlay"
         >
-          <span class="nav-music-icon" aria-hidden="true">
-            <span v-if="isPlaying" class="nav-music-bars">
-              <span></span>
-              <span></span>
-              <span></span>
-            </span>
-            <span v-else class="nav-music-play">▶</span>
+          <span class="nav-music-cover" :class="{ 'is-spinning': isPlaying }" aria-hidden="true">
+            <img
+              v-if="currentTrack.coverUrl"
+              :src="currentTrack.coverUrl"
+              :alt="currentTrack.title"
+              @error="($event) => $event.target.style.display = 'none'"
+            />
+            <span v-else class="nav-music-note">♪</span>
           </span>
           <span class="nav-music-info">
             <strong>{{ isPlaying ? '正在播放' : '已暂停' }}</strong>
