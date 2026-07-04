@@ -98,8 +98,8 @@ watch(theme, applyTheme)
 </script>
 
 <template>
-  <div class="site-shell">
-    <header class="site-header">
+  <header class="site-header">
+    <div class="site-shell site-header-inner">
       <div class="header-left">
         <RouterLink class="brand" to="/" aria-label="返回首页">
           <span class="brand-mark" aria-hidden="true">
@@ -158,8 +158,10 @@ watch(theme, applyTheme)
           <span class="theme-toggle-text">{{ currentTheme.label }}</span>
         </button>
       </div>
-    </header>
+    </div>
+  </header>
 
+  <div class="site-shell">
     <main>
       <RouterView />
     </main>

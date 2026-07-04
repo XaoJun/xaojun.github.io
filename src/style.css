@@ -115,14 +115,21 @@ code {
 }
 
 .site-header {
-  position: relative;
-  z-index: 10;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.site-header-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
   padding: 14px 0;
-  background: transparent;
 }
 
 .header-left {
@@ -2173,7 +2180,7 @@ code {
 }
 
 @media (max-width: 920px) {
-  .site-header {
+  .site-header-inner {
     align-items: flex-start;
     flex-direction: column;
   }
