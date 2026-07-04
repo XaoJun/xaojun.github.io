@@ -135,6 +135,10 @@ const togglePlay = () => {
   if (isPlaying.value) {
     audioElement.value.pause()
   } else {
+    if (!audioElement.value.src || audioElement.value.src !== currentTrack.value.url) {
+      audioElement.value.src = currentTrack.value.url
+      audioElement.value.load()
+    }
     audioElement.value.play().catch((error) => {
       console.error('播放失败:', error)
     })
@@ -208,6 +212,10 @@ const loadMusic = async () => {
   try {
     const tracks = await getMusicTracks()
     musicTracks.value = tracks
+    console.log('音乐列表加载成功，共', tracks.length, '首')
+    if (tracks.length > 0) {
+      console.log('第一首歌:', tracks[0])
+    }
   } catch (error) {
     console.error('加载音乐列表失败:', error)
   }
