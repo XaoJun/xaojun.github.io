@@ -1,7 +1,21 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { getHome, getLifePhotoStat, getTechnicalArticleStat, getMusicTracks } from '../services/api'
+import { getHome, getLifePhotoStat, getTechnicalArticleStat } from '../services/api'
+import { useMusicPlayer } from '../composables/useMusicPlayer'
+
+const {
+  tracks: musicTracks,
+  currentTrack,
+  isPlaying,
+  currentTime,
+  duration,
+  formatTime,
+  togglePlay,
+  playNext,
+  playPrev,
+  loadMusic,
+} = useMusicPlayer()
 
 const profile = ref({
   name: '',
@@ -97,137 +111,6 @@ const externalSocials = computed(() =>
 const activeEmailPopup = ref('')
 const emailCopyStatus = ref('')
 const stats = ref([])
-
-const musicTracks = ref([])
-const currentTrackIndex = ref(0)
-const isPlaying = ref(false)
-const currentTime = ref(0)
-const duration = ref(0)
-const audioElement = ref(null)
-
-const currentTrack = computed(() => {
-  if (!musicTracks.value.length) {
-    return null
-  }
-  return musicTracks.value[currentTrackIndex.value]
-})
-
-const formatTime = (seconds) => {
-  if (!seconds || isNaN(seconds)) {
-    return '00:00'
-  }
-  const mins = Math.floor(seconds / 60)
-  const secs = Math.floor(seconds % 60)
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-}
-
-const MUSIC_VOLUME = 0.1
-
-const togglePlay = () => {
-  if (!audioElement.value) {
-    console.error('音频元素未初始化')
-    return
-  }
-
-  if (!currentTrack.value) {
-    console.error('没有可播放的音乐')
-    return
-  }
-
-  if (isPlaying.value) {
-    audioElement.value.pause()
-  } else {
-    if (!audioElement.value.src || audioElement.value.src !== currentTrack.value.url) {
-      audioElement.value.src = currentTrack.value.url
-      audioElement.value.load()
-    }
-    audioElement.value.volume = MUSIC_VOLUME
-    audioElement.value.play().catch((error) => {
-      console.error('播放失败:', error)
-    })
-  }
-}
-
-const playNext = () => {
-  if (musicTracks.value.length === 0) {
-    return
-  }
-  currentTrackIndex.value = (currentTrackIndex.value + 1) % musicTracks.value.length
-  playCurrentTrack()
-}
-
-const playPrev = () => {
-  if (musicTracks.value.length === 0) {
-    return
-  }
-  currentTrackIndex.value = (currentTrackIndex.value - 1 + musicTracks.value.length) % musicTracks.value.length
-  playCurrentTrack()
-}
-
-const playCurrentTrack = () => {
-  if (!audioElement.value) {
-    console.error('音频元素未初始化')
-    return
-  }
-
-  if (!currentTrack.value) {
-    console.error('没有可播放的音乐')
-    return
-  }
-
-  audioElement.value.src = currentTrack.value.url
-  audioElement.value.volume = MUSIC_VOLUME
-  audioElement.value.load()
-  audioElement.value.play().catch((error) => {
-    console.error('播放失败:', error)
-  })
-}
-
-const handleTimeUpdate = () => {
-  if (audioElement.value) {
-    currentTime.value = audioElement.value.currentTime
-  }
-}
-
-const handleLoadedMetadata = () => {
-  if (audioElement.value) {
-    audioElement.value.volume = MUSIC_VOLUME
-    duration.value = audioElement.value.duration || currentTrack.value?.duration || 0
-  }
-}
-
-const handleAudioError = (event) => {
-  console.error('音频加载错误:', event)
-  console.error('错误信息:', audioElement.value?.error?.message)
-}
-
-const handlePlay = () => {
-  isPlaying.value = true
-  if (audioElement.value) {
-    audioElement.value.volume = MUSIC_VOLUME
-  }
-}
-
-const handlePause = () => {
-  isPlaying.value = false
-}
-
-const handleEnded = () => {
-  playNext()
-}
-
-const loadMusic = async () => {
-  try {
-    const tracks = await getMusicTracks()
-    musicTracks.value = tracks
-    console.log('音乐列表加载成功，共', tracks.length, '首')
-    if (tracks.length > 0) {
-      console.log('第一首歌:', tracks[0])
-    }
-  } catch (error) {
-    console.error('加载音乐列表失败:', error)
-  }
-}
 
 const toggleEmailPopup = (type) => {
   activeEmailPopup.value = activeEmailPopup.value === type ? '' : type
@@ -574,16 +457,6 @@ const blogInfo = ref([])
       </article>
     </section>
       </div>
-
-      <audio
-        ref="audioElement"
-        @timeupdate="handleTimeUpdate"
-        @loadedmetadata="handleLoadedMetadata"
-        @play="handlePlay"
-        @pause="handlePause"
-        @ended="handleEnded"
-        @error="handleAudioError"
-      />
     </template>
   </div>
 </template>

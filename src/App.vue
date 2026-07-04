@@ -1,6 +1,13 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, RouterView } from 'vue-router'
+import { useMusicPlayer } from './composables/useMusicPlayer'
+
+const {
+  currentTrack,
+  isPlaying,
+  togglePlay,
+} = useMusicPlayer()
 
 const navItems = [
   { label: '首页', name: 'home' },
@@ -93,15 +100,39 @@ watch(theme, applyTheme)
 <template>
   <div class="site-shell">
     <header class="site-header">
-      <RouterLink class="brand" to="/" aria-label="返回首页">
-        <span class="brand-mark" aria-hidden="true">
-          <span>田</span>
-        </span>
-        <span class="brand-copy">
-          <strong>田艳军</strong>
-          <small>个人博客</small>
-        </span>
-      </RouterLink>
+      <div class="header-left">
+        <RouterLink class="brand" to="/" aria-label="返回首页">
+          <span class="brand-mark" aria-hidden="true">
+            <span>田</span>
+          </span>
+          <span class="brand-copy">
+            <strong>田艳军</strong>
+            <small>个人博客</small>
+          </span>
+        </RouterLink>
+
+        <button
+          v-if="currentTrack"
+          class="nav-music"
+          type="button"
+          :aria-label="isPlaying ? '暂停音乐' : '播放音乐'"
+          :title="currentTrack ? `${currentTrack.title} - ${currentTrack.artist}` : '音乐播放器'"
+          @click="togglePlay"
+        >
+          <span class="nav-music-icon" aria-hidden="true">
+            <span v-if="isPlaying" class="nav-music-bars">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+            <span v-else class="nav-music-play">▶</span>
+          </span>
+          <span class="nav-music-info">
+            <strong>{{ isPlaying ? '正在播放' : '已暂停' }}</strong>
+            <small>{{ currentTrack.title }}</small>
+          </span>
+        </button>
+      </div>
 
       <div class="header-actions">
         <nav class="nav-links" aria-label="主导航">
