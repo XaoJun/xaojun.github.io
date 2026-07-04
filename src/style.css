@@ -2340,9 +2340,8 @@ body.is-preface .site-header {
 
 .contact-account {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  flex-direction: column;
+  gap: 6px;
   padding: 18px 20px;
   border-radius: 18px;
   background: var(--surface-soft);
@@ -2356,6 +2355,14 @@ body.is-preface .site-header {
 .contact-account strong {
   color: var(--heading);
   font-size: clamp(22px, 4vw, 34px);
+}
+
+.contact-href {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  word-break: break-all;
 }
 
 .contact-qrcode-grid {

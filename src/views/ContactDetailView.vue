@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { getSocialContact } from '../services/api'
+import { getSocialContact, getProfile } from '../services/api'
 
 const route = useRoute()
 const contact = ref({
@@ -12,6 +12,7 @@ const contact = ref({
   href: '',
   images: [],
 })
+const profile = ref({ name: '', intro: '' })
 const loading = ref(true)
 const errorMessage = ref('')
 
@@ -28,7 +29,12 @@ const loadContact = async () => {
   errorMessage.value = ''
 
   try {
-    contact.value = await getSocialContact(route.params.type)
+    const [detail, prof] = await Promise.all([
+      getSocialContact(route.params.type),
+      getProfile().catch(() => ({ name: '', intro: '' })),
+    ])
+    contact.value = detail
+    profile.value = prof
   } catch (error) {
     console.error('加载联系方式失败:', error)
     errorMessage.value = '联系方式加载失败，请稍后再试。'
@@ -47,7 +53,8 @@ watch(() => route.params.type, loadContact, { immediate: true })
     <div class="contact-hero">
       <p class="eyebrow">Contact</p>
       <h1>{{ pageTitle }}</h1>
-      <p>这里展示账号信息和扫码添加好友的二维码。</p>
+      <p v-if="profile.name">Hi，我是 {{ profile.name }}，以下是联系方式详情。</p>
+      <p v-else>这里展示账号信息和扫码添加好友的二维码。</p>
     </div>
 
     <div v-if="loading" class="loading">
@@ -63,6 +70,7 @@ watch(() => route.params.type, loadContact, { immediate: true })
       <div class="contact-account">
         <span>{{ contact.label }} 账号</span>
         <strong>{{ contact.account }}</strong>
+        <span v-if="contact.href" class="contact-href">{{ contact.href }}</span>
       </div>
 
       <div v-if="contact.images.length" class="contact-qrcode-grid">
@@ -76,7 +84,7 @@ watch(() => route.params.type, loadContact, { immediate: true })
       </div>
 
       <div v-else class="empty-state">
-        暂未配置二维码图片。
+        暂未配置二维码图片，请通知站长尽快补充。
       </div>
     </div>
   </section>
