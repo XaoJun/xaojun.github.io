@@ -10,6 +10,16 @@ const request = async (path) => {
   return response.json()
 }
 
+const post = async (path) => {
+  const response = await fetch(`${API_BASE_URL}${path}`, { method: 'POST' })
+
+  if (!response.ok) {
+    throw new Error(`请求失败：${response.status} ${response.statusText}`)
+  }
+
+  return response.status === 204 ? null : response.json()
+}
+
 export const getHome = () => request('/api/home')
 export const getProfile = () => request('/api/profile')
 export const getIdentities = () => request('/api/identities')
@@ -24,3 +34,4 @@ export const getPost = (slug) => request(`/api/posts/${encodeURIComponent(slug)}
 export const getPhotos = () => request('/api/photos')
 export const getResume = () => request('/api/resume')
 export const getMusicTracks = () => request('/api/music')
+export const recordView = () => post('/api/views')

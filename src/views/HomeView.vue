@@ -1,17 +1,20 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { getHome, getLifePhotoStat, getTechnicalArticleStat } from '../services/api'
+import { getHome, getLifePhotoStat, getTechnicalArticleStat, recordView } from '../services/api'
 import { useMusicPlayer } from '../composables/useMusicPlayer'
 
 const {
   tracks: musicTracks,
   currentTrack,
   isPlaying,
+  isMuted,
   currentTime,
   duration,
   formatTime,
   togglePlay,
+  play,
+  unmute,
   playNext,
   playPrev,
   loadMusic,
@@ -50,6 +53,35 @@ let photoWallDelayTask
 let photoWallIdleTask
 
 const photoWall = ref([])
+const showContent = ref(false)
+const showPreface = ref(true)
+
+// 序言阶段隐藏顶部导航栏
+watch(
+  showPreface,
+  (visible) => {
+    if (typeof document === 'undefined') return
+    document.body.classList.toggle('is-preface', visible)
+  },
+  { immediate: true },
+)
+
+// 音乐加载完成后立即尝试播放（无用户交互时静音播放，浏览器允许 muted autoplay）
+watch(currentTrack, (track) => {
+  if (track && !isPlaying.value) {
+    play()
+  }
+}, { immediate: true })
+
+// 序言页面点击"进入博客"：此时产生用户交互，解除静音并有声播放
+const enterWelcome = () => {
+  showPreface.value = false
+  unmute()
+  if (!isPlaying.value && currentTrack.value) {
+    play()
+  }
+}
+
 const photoWallSegments = computed(() => {
   if (!photoWall.value.length) {
     return []
@@ -206,11 +238,15 @@ const schedulePhotoWall = () => {
 onMounted(async () => {
   await loadHome()
   schedulePhotoWall()
+
+  // 记录访问量
+  recordView().catch((error) => console.error('记录访问失败:', error))
 })
 
 onBeforeUnmount(() => {
   isHomeUnmounted = true
   window.clearTimeout(photoWallDelayTask)
+  document.body.classList.remove('is-preface')
 
   if (photoWallIdleTask && 'cancelIdleCallback' in window) {
     window.cancelIdleCallback(photoWallIdleTask)
@@ -235,7 +271,32 @@ const blogInfo = ref([])
     </section>
 
     <template v-else>
-      <div class="hero-visual home-page-visual" aria-label="流动照片背景">
+      <!-- 序言页面：首次访问时显示，点击"进入博客"后隐藏（此点击即为浏览器认可的用户交互，可触发音乐有声播放） -->
+      <transition name="preface-fade">
+        <div v-if="showPreface" class="preface-overlay">
+          <div class="preface-content">
+            <p class="preface-label">序言</p>
+            <h1 class="preface-title">代码是写给机器的诗<br />博客是写给自己的信</h1>
+            <p class="preface-text">
+              在这里，我记录后端架构的思考、前端实践的细节，以及生活里那些值得驻足的瞬间。
+            </p>
+            <p class="preface-text">
+              技术不是冰冷的逻辑，而是解决问题的温度；生活不是机械的重复，而是值得收藏的故事。愿这些文字，能与同样热爱技术的你相遇。
+            </p>
+            <button class="preface-enter-button" type="button" @click="enterWelcome">
+              进入博客
+            </button>
+          </div>
+        </div>
+      </transition>
+
+      <div
+        v-show="!showPreface"
+        class="hero-visual home-page-visual"
+        :class="{ 'is-blurred': showContent }"
+        aria-label="流动照片背景"
+        @click="showContent = true"
+      >
         <div v-if="!showPhotoWall" class="photo-wall-loading" aria-live="polite">
           <div class="photo-loading-mark" aria-hidden="true">
             <span></span>
@@ -277,9 +338,18 @@ const blogInfo = ref([])
             </div>
           </div>
         </div>
+
+        <div v-if="showPhotoWall && !showContent" class="welcome-overlay">
+          <div class="welcome-content">
+            <h1 class="welcome-title">欢迎来到我的博客</h1>
+            <p class="welcome-subtitle">这里记录着我的技术实践与生活片段</p>
+            <p class="welcome-hint">点击任意位置进入</p>
+          </div>
+        </div>
       </div>
 
-      <div class="home-content">
+      <transition name="content-fade">
+      <div v-if="showContent && !showPreface" class="home-content">
     <section class="home-hero">
       <aside class="hero-profile-panel">
         <div class="hero-panel-side">
@@ -465,6 +535,7 @@ const blogInfo = ref([])
       </article>
     </section>
       </div>
+      </transition>
     </template>
   </div>
 </template>

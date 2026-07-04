@@ -7,9 +7,13 @@ const audio = typeof window !== 'undefined' ? new Audio() : null
 const tracks = ref([])
 const currentTrackIndex = ref(0)
 const isPlaying = ref(false)
+const isMuted = ref(false)
 const currentTime = ref(0)
 const duration = ref(0)
 const isReady = ref(false)
+
+// 标记用户是否已交互过（浏览器自动播放策略）
+let hasUserInteracted = false
 
 if (audio) {
   audio.volume = MUSIC_VOLUME
@@ -64,6 +68,8 @@ const playCurrentTrack = () => {
 
   audio.src = currentTrack.value.url
   audio.volume = MUSIC_VOLUME
+  audio.muted = !hasUserInteracted
+  isMuted.value = !hasUserInteracted
   audio.load()
   audio.play().catch((error) => {
     console.error('播放失败:', error)
@@ -75,6 +81,8 @@ const togglePlay = () => {
     return
   }
 
+  hasUserInteracted = true
+
   if (isPlaying.value) {
     audio.pause()
   } else {
@@ -83,10 +91,40 @@ const togglePlay = () => {
       audio.load()
     }
     audio.volume = MUSIC_VOLUME
+    audio.muted = false
+    isMuted.value = false
     audio.play().catch((error) => {
       console.error('播放失败:', error)
     })
   }
+}
+
+const play = () => {
+  if (!audio || !currentTrack.value || isPlaying.value) {
+    return
+  }
+
+  if (!audio.src) {
+    audio.src = currentTrack.value.url
+    audio.load()
+  }
+  audio.volume = MUSIC_VOLUME
+  // 浏览器自动播放策略：无用户交互时静音播放（muted autoplay 允许），交互后有声
+  audio.muted = !hasUserInteracted
+  isMuted.value = !hasUserInteracted
+  return audio.play().catch((error) => {
+    console.error('播放失败:', error)
+    return false
+  })
+}
+
+const unmute = () => {
+  hasUserInteracted = true
+  if (!audio || !isMuted.value) {
+    return
+  }
+  audio.muted = false
+  isMuted.value = false
 }
 
 const playNext = () => {
@@ -122,11 +160,14 @@ export function useMusicPlayer() {
     currentTrack,
     currentTrackIndex,
     isPlaying,
+    isMuted,
     currentTime,
     duration,
     isReady,
     formatTime,
     togglePlay,
+    play,
+    unmute,
     playNext,
     playPrev,
     loadMusic,

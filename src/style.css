@@ -122,6 +122,18 @@ code {
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease,
+    visibility 0.4s ease;
+}
+
+/* 序言阶段隐藏顶部导航栏 */
+body.is-preface .site-header {
+  opacity: 0;
+  transform: translateY(-100%);
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .site-header-inner {
@@ -855,6 +867,14 @@ code {
   border-radius: inherit;
   background: linear-gradient(135deg, #304b39 0%, #5b9a6f 46%, #b8d4c4 100%);
   box-shadow: none;
+  cursor: pointer;
+  transition:
+    filter 0.5s ease,
+    transform 0.5s ease;
+}
+
+.hero-visual.is-blurred {
+  cursor: default;
 }
 
 .hero-visual::before,
@@ -878,6 +898,238 @@ code {
   bottom: 0;
   height: 180px;
   background: linear-gradient(0deg, rgba(14, 23, 18, 0.68), transparent);
+}
+
+/* 欢迎覆盖层 - 首次访问时展示在照片墙上方 */
+.welcome-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  background: radial-gradient(circle at 50% 50%, rgba(14, 23, 18, 0.42), rgba(14, 23, 18, 0.72));
+  animation: welcomeFadeIn 0.6s ease both;
+}
+
+.welcome-content {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  max-width: 580px;
+}
+
+.welcome-title {
+  color: #fff;
+  font-size: clamp(36px, 5vw, 56px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.42);
+}
+
+.welcome-subtitle {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: clamp(15px, 1.6vw, 18px);
+  font-weight: 500;
+  line-height: 1.7;
+}
+
+.welcome-hint {
+  margin-top: 10px;
+  padding: 10px 22px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: welcomeHintPulse 2s ease-in-out infinite;
+}
+
+@keyframes welcomeFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes welcomeHintPulse {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.82;
+  }
+  50% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+/* 内容面板淡入过渡 */
+.content-fade-enter-active {
+  transition:
+    opacity 0.55s ease 0.2s,
+    transform 0.55s ease 0.2s;
+}
+
+.content-fade-leave-active {
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+
+.content-fade-enter-from {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.content-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-24px);
+}
+
+/* 序言页面 - 首次访问时全屏覆盖，用户点击"进入博客"后消失（此点击触发音乐有声播放） */
+.preface-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  padding: 40px 24px;
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(48, 75, 57, 0.55), rgba(14, 23, 18, 0.92) 70%),
+    linear-gradient(135deg, #1a2620 0%, #0e1712 100%);
+  animation: prefaceFadeIn 0.7s ease both;
+  overflow-y: auto;
+}
+
+.preface-content {
+  display: grid;
+  gap: 22px;
+  justify-items: center;
+  max-width: 620px;
+  animation: prefaceContentRise 0.9s ease 0.15s both;
+}
+
+.preface-label {
+  margin: 0;
+  padding: 6px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4em;
+  text-indent: 0.4em;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.preface-title {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(28px, 4.4vw, 46px);
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  text-shadow: 0 4px 28px rgba(0, 0, 0, 0.5);
+}
+
+.preface-text {
+  margin: 0;
+  max-width: 520px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: clamp(14px, 1.5vw, 16px);
+  font-weight: 400;
+  line-height: 1.85;
+  letter-spacing: 0.02em;
+}
+
+.preface-enter-button {
+  margin-top: 18px;
+  padding: 14px 44px;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-indent: 0.16em;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.32);
+  transition:
+    transform 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.3s ease;
+  animation: prefaceHintPulse 2.4s ease-in-out infinite;
+}
+
+.preface-enter-button:hover,
+.preface-enter-button:focus-visible {
+  background: rgba(255, 255, 255, 0.24);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
+  outline: none;
+}
+
+.preface-enter-button:active {
+  transform: translateY(0);
+}
+
+@keyframes prefaceFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes prefaceContentRise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes prefaceHintPulse {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.32);
+  }
+  50% {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
+  }
+}
+
+/* 序言页面淡出过渡 */
+.preface-fade-leave-active {
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
+}
+
+.preface-fade-leave-to {
+  opacity: 0;
+  transform: scale(1.04);
 }
 
 .photo-wall-loading {
@@ -2248,6 +2500,43 @@ code {
 
   .nav-music {
     min-height: 36px;
+  }
+
+  .welcome-content {
+    gap: 10px;
+  }
+
+  .welcome-hint {
+    margin-top: 6px;
+    padding: 8px 18px;
+    font-size: 12px;
+  }
+
+  .preface-overlay {
+    padding: 28px 20px;
+  }
+
+  .preface-content {
+    gap: 16px;
+  }
+
+  .preface-label {
+    padding: 5px 14px;
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-indent: 0.32em;
+  }
+
+  .preface-text {
+    line-height: 1.75;
+  }
+
+  .preface-enter-button {
+    margin-top: 12px;
+    padding: 12px 36px;
+    font-size: 14px;
+    letter-spacing: 0.14em;
+    text-indent: 0.14em;
   }
 
   .home-page {
